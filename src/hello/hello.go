@@ -3,15 +3,19 @@ package main
 import (
     "fmt"
     "log"
+    "encoding/json"
+	"io/ioutil"
     "net/http"
 )
- 
+
 type user struct {
     Id   int
     Name string
     DOB string
-    friends []string
+    friends []int
 }
+
+var users []user
 
 func main() {	
 	http.HandleFunc("/",Index)
@@ -30,14 +34,67 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
  
 func AddUser(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintln(w, "Add New User")
+	b, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	var u user
+	err = json.Unmarshal(b, &u)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	users = append(users,u)
+    fmt.Fprintln(w, "New User Added",u.Name)
 }
  
 func ViewUser(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintln(w, "view User")
+    b, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	var u string
+	err = json.Unmarshal(b, &u)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	var us user
+	for _, v := range users {
+    if v.Name == u {
+    	us = v
+    	}
+	}
+
+	output, err := json.Marshal(us)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("content-type", "application/json")
+	w.Write(output)
 }
+
+
 func ViewAll(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintln(w, "view All User")
+	for _, v := range users {
+    {
+
+	output, err := json.Marshal(v)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("content-type", "application/json")
+	w.Write(output)
+    }
+	}
 }
 func EditUser(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintln(w, "Edit User")
